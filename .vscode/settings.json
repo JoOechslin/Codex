@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "algorithm": "cpp",
+        "atomic": "cpp",
+        "limits": "cpp",
+        "ratio": "cpp"
+    }
+}
