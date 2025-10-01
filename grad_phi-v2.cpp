@@ -15,6 +15,7 @@
 
 /* Version history
 grad_phi-v2.cpp
+2025-09-30 Added fully consistent implementation of use_TSC
 2025-09-29 Added fof_groups function. Significant performance enhancement over Python version of same function
            Further optimized cooling_heating_step_cpp by paralleling several Ng**3 loops
 2025-09-28 Amended PMEngine::step so that it releases the GIL. Changed combined_step to run ::step and cooling_heating_step_cpp in parallel
@@ -687,70 +688,14 @@ double velocity_stat(const py::array_t<double> u_in, int n_threads=8) {
 namespace {
 
 // Forward declarations for raw kernels defined later in this file
-void compute_delta_field_TSC_raw(const double* pos,
-                                 ssize_t Np,
-                                 int Ngrid,
-                                 double L,
-                                 int n_threads,
-                                 double* delta_out);
-
-void compute_delta_field_CIC_raw(const double* pos,
-                                 ssize_t Np,
-                                 int Ngrid,
-                                 double L,
-                                 int n_threads,
-                                 double* delta_out);
-
-void gather_scalar_CIC_raw(const double* grid,
-                           int Ngrid,
-                           double Lbox,
-                           double dx,
-                           const double* pos,
-                           ssize_t N,
-                           int n_threads,
-                           ptrdiff_t out_stride,
-                           double* out);
-
-void tsc_gather_scalar_TSC_raw(const double* grid,
-                           int Ngrid,
-                           double Lbox,
-                           double dx,
-                           const double* pos,
-                           ssize_t N,
-                           int n_threads,
-                           ptrdiff_t out_stride,
-                           double* out);
-
-void interpolate_forces_CIC_raw(const double* Fx,
-                            const double* Fy,
-                            const double* Fz,
-                            int Ngrid,
-                            double Lbox,
-                            double dx,
-                            const double* pos,
-                            ssize_t N,
-                            int n_threads,
-                            double* out);
-
-void interpolate_forces_TSC_raw(const double* Fx,
-                                const double* Fy,
-                                const double* Fz,
-                                int Ngrid,
-                                double Lbox,
-                                double dx,
-                                const double* pos,
-                                ssize_t N,
-                                int n_threads,
-                                double* out);
-
-void interpolate_potential_CIC_raw(const double* grid,
-                               int Ngrid,
-                               double Lbox,
-                               double dx,
-                               const double* pos,
-                               ssize_t N,
-                               int n_threads,
-                               double* out);
+void compute_delta_field_CIC_raw(const double* pos, ssize_t Np, int Ngrid, double L, int n_threads, double* delta_out);
+void compute_delta_field_TSC_raw(const double* pos, ssize_t Np, int Ngrid, double L, int n_threads, double* delta_out);
+void gather_scalar_CIC_raw(const double* grid, int Ngrid, double Lbox, double dx, const double* pos, ssize_t N, int n_threads, ptrdiff_t out_stride, double* out);
+void gather_scalar_TSC_raw(const double* grid, int Ngrid, double Lbox, double dx, const double* pos, ssize_t N, int n_threads, ptrdiff_t out_stride, double* out);
+void interpolate_forces_CIC_raw(const double* Fx, const double* Fy, const double* Fz, int Ngrid, double Lbox, double dx, const double* pos, ssize_t N, int n_threads, double* out);
+void interpolate_forces_TSC_raw(const double* Fx, const double* Fy, const double* Fz, int Ngrid, double Lbox, double dx, const double* pos, ssize_t N, int n_threads, double* out);
+void interpolate_potential_CIC_raw(const double* grid, int Ngrid, double Lbox, double dx, const double* pos, ssize_t N, int n_threads, double* out);
+void interpolate_potential_TSC_raw(const double* grid, int Ngrid, double Lbox, double dx, const double* pos, ssize_t N, int n_threads, double* out);
 
 } // namespace
 
@@ -1074,7 +1019,7 @@ void gather_scalar_CIC_raw(const double* grid,
     }
 }
 
-void tsc_gather_scalar_TSC_raw(const double* grid,
+void gather_scalar_TSC_raw(const double* grid,
                            int Ngrid,
                            double Lbox,
                            double dx,
@@ -1237,6 +1182,18 @@ void interpolate_potential_CIC_raw(const double* grid,
                                double* out)
 {
     gather_scalar_CIC_raw(grid, Ngrid, Lbox, dx, pos, N, n_threads, 1, out);
+}
+
+void interpolate_potential_TSC_raw(const double* grid,
+                               int Ngrid,
+                               double Lbox,
+                               double dx,
+                               const double* pos,
+                               ssize_t N,
+                               int n_threads,
+                               double* out)
+{
+    gather_scalar_TSC_raw(grid, Ngrid, Lbox, dx, pos, N, n_threads, 1, out);
 }
 
 } // namespace
@@ -1431,6 +1388,23 @@ struct PMEngine {
                                             Np,
                                             n_threads,
                                             accel_buf.data());
+                interpolate_potential_TSC_raw(phi_grid_buf.data(),
+                                        Ngrid,
+                                        L,
+                                        dx_box,
+                                        pod_ptr,
+                                        Np,
+                                        n_threads,
+                                        phi_part_buf.data());
+
+                interpolate_potential_TSC_raw(delta_buf.data(),
+                                        Ngrid,
+                                        L,
+                                        dx_box,
+                                        pod_ptr,
+                                        Np,
+                                        n_threads,
+                                        delta_part_buf.data());
             } else {
                 interpolate_forces_CIC_raw(Fx_buf.data(),
                                        Fy_buf.data(),
@@ -1442,25 +1416,25 @@ struct PMEngine {
                                        Np,
                                        n_threads,
                                        accel_buf.data());
+                interpolate_potential_CIC_raw(phi_grid_buf.data(),
+                                        Ngrid,
+                                        L,
+                                        dx_box,
+                                        pod_ptr,
+                                        Np,
+                                        n_threads,
+                                        phi_part_buf.data());
+
+                interpolate_potential_CIC_raw(delta_buf.data(),
+                                        Ngrid,
+                                        L,
+                                        dx_box,
+                                        pod_ptr,
+                                        Np,
+                                        n_threads,
+                                        delta_part_buf.data());
             }
 
-            interpolate_potential_CIC_raw(phi_grid_buf.data(),
-                                       Ngrid,
-                                       L,
-                                       dx_box,
-                                       pod_ptr,
-                                       Np,
-                                       n_threads,
-                                       phi_part_buf.data());
-
-            interpolate_potential_CIC_raw(delta_buf.data(),
-                                       Ngrid,
-                                       L,
-                                       dx_box,
-                                       pod_ptr,
-                                       Np,
-                                       n_threads,
-                                       delta_part_buf.data());
 
             const double inv_a2 = 1.0 / (a * a);
             #pragma omp parallel for if(n_threads>1) num_threads(n_threads) schedule(static)
@@ -1777,7 +1751,7 @@ py::array_t<double> gather(const py::array_t<double, py::array::c_style | py::ar
 
     py::array_t<double> result(N);
     if (use_TSC) {
-        tsc_gather_scalar_TSC_raw(static_cast<const double*>(buf_grid.ptr),
+        gather_scalar_TSC_raw(static_cast<const double*>(buf_grid.ptr),
                                   Ng,
                                   Lbox_Mpc,
                                   dx,
@@ -1831,6 +1805,7 @@ Vec3Grid cic_deposit_vec_equal_mass_impl(const py::array_t<double> pos_Mpc,
     auto nz = num_z.mutable_unchecked<3>();
     auto w  = weight.mutable_unchecked<3>();
 
+    #pragma omp parallel for schedule(static)
     for (int p = 0; p < Np; ++p) {
         double qx = std::fmod(pos(p, 0), Lbox_Mpc) / dx;
         double qy = std::fmod(pos(p, 1), Lbox_Mpc) / dx;
@@ -1856,9 +1831,13 @@ Vec3Grid cic_deposit_vec_equal_mass_impl(const py::array_t<double> pos_Mpc,
             int jj = wrap(j + oy, Ng);
             int kk = wrap(k + oz, Ng);
 
+            #pragma omp atomic
             nx(ii, jj, kk) += weight_val * vel(p, 0);
+            #pragma omp atomic
             ny(ii, jj, kk) += weight_val * vel(p, 1);
+            #pragma omp atomic
             nz(ii, jj, kk) += weight_val * vel(p, 2);
+            #pragma omp atomic
             w(ii, jj, kk)  += weight_val;
         }
     }
@@ -1880,6 +1859,97 @@ Vec3Grid cic_deposit_vec_equal_mass_impl(const py::array_t<double> pos_Mpc,
 
     return {std::move(num_x), std::move(num_y), std::move(num_z)};
 }
+
+Vec3Grid tsc_deposit_vec_equal_mass_impl(const py::array_t<double> pos_Mpc,
+                                         const py::array_t<double> vec,
+                                         double Lbox_Mpc, int Ng) {
+    auto pos = pos_Mpc.unchecked<2>();
+    auto vel = vec.unchecked<2>();
+    const int Np = pos.shape(0);
+    const double dx = Lbox_Mpc / Ng;
+
+    py::array_t<double> num_x({Ng, Ng, Ng});
+    py::array_t<double> num_y({Ng, Ng, Ng});
+    py::array_t<double> num_z({Ng, Ng, Ng});
+    py::array_t<double> weight({Ng, Ng, Ng});
+    std::memset(num_x.mutable_data(), 0, sizeof(double) * Ng * Ng * Ng);
+    std::memset(num_y.mutable_data(), 0, sizeof(double) * Ng * Ng * Ng);
+    std::memset(num_z.mutable_data(), 0, sizeof(double) * Ng * Ng * Ng);
+    std::memset(weight.mutable_data(), 0, sizeof(double) * Ng * Ng * Ng);
+
+    auto nx = num_x.mutable_unchecked<3>();
+    auto ny = num_y.mutable_unchecked<3>();
+    auto nz = num_z.mutable_unchecked<3>();
+    auto w  = weight.mutable_unchecked<3>();
+
+    #pragma omp parallel for schedule(static)
+    for (int p = 0; p < Np; ++p) {
+        double xg = pos(p, 0) / dx;
+        double yg = pos(p, 1) / dx;
+        double zg = pos(p, 2) / dx;
+
+        int ix[3], iy[3], iz[3];
+        double wx[3], wy[3], wz[3];
+        tsc_stencil_1d(xg, Ng, ix, wx);
+        tsc_stencil_1d(yg, Ng, iy, wy);
+        tsc_stencil_1d(zg, Ng, iz, wz);
+
+        for (int a = 0; a < 3; ++a) {
+            double wxa = wx[a];
+            if (wxa == 0.0) continue;
+            int i = ix[a];
+            for (int b = 0; b < 3; ++b) {
+                double wyb = wy[b];
+                if (wyb == 0.0) continue;
+                int j = iy[b];
+                double wxy = wxa * wyb;
+                for (int c = 0; c < 3; ++c) {
+                    double wzc = wz[c];
+                    if (wzc == 0.0) continue;
+                    int k = iz[c];
+                    double wt = wxy * wzc;
+                    #pragma omp atomic
+                    nx(i, j, k) += wt * vel(p, 0);
+                    #pragma omp atomic
+                    ny(i, j, k) += wt * vel(p, 1);
+                    #pragma omp atomic
+                    nz(i, j, k) += wt * vel(p, 2);
+                    #pragma omp atomic
+                    w(i, j, k)  += wt;
+                }
+            }
+        }
+    }
+
+    auto finalize = [&](py::array_t<double>& num){
+        auto arr = num.mutable_unchecked<3>();
+        #pragma omp parallel for collapse(3) schedule(static)
+        for (int i = 0; i < Ng; ++i)
+        for (int j = 0; j < Ng; ++j)
+        for (int k = 0; k < Ng; ++k) {
+            double denom = w(i, j, k);
+            arr(i, j, k) = denom > 0.0 ? arr(i, j, k) / denom : 0.0;
+        }
+    };
+
+    finalize(num_x);
+    finalize(num_y);
+    finalize(num_z);
+
+    return {std::move(num_x), std::move(num_y), std::move(num_z)};
+}
+
+Vec3Grid deposit_vec_equal_mass_impl(const py::array_t<double> pos_Mpc,
+                                     const py::array_t<double> vec,
+                                     double Lbox_Mpc,
+                                     int Ng, bool use_TSC = false) {
+    if (use_TSC) {
+        return tsc_deposit_vec_equal_mass_impl(pos_Mpc, vec, Lbox_Mpc, Ng);
+    } else {
+        return cic_deposit_vec_equal_mass_impl(pos_Mpc, vec, Lbox_Mpc, Ng);
+    }
+}
+
 
 std::array<py::array_t<double>, 3> gradient_central_impl(const py::array_t<double> grid, double dx) {
     auto g = grid.unchecked<3>();
@@ -1981,14 +2051,14 @@ Vec3Grid pressure_acceleration_grid_impl(const py::array_t<double> rho_b_com_gri
     return {std::move(ax), std::move(ay), std::move(az)};
 }
 
-py::array_t<double> gather_vec_impl(const py::array_t<double> ax,
+py::array_t<double> gather_vec(const py::array_t<double> ax,
                                     const py::array_t<double> ay,
                                     const py::array_t<double> az,
                                     const py::array_t<double> pos_Mpc,
-                                    double Lbox_Mpc, double dx, int n_threads) {
-    py::array_t<double> gx = cic_gather(ax, pos_Mpc, Lbox_Mpc, dx, n_threads);
-    py::array_t<double> gy = cic_gather(ay, pos_Mpc, Lbox_Mpc, dx, n_threads);
-    py::array_t<double> gz = cic_gather(az, pos_Mpc, Lbox_Mpc, dx, n_threads);
+                                    double Lbox_Mpc, double dx, bool use_TSC = false, int n_threads = 8) {
+    py::array_t<double> gx = gather(ax, pos_Mpc, Lbox_Mpc, dx, use_TSC, n_threads);
+    py::array_t<double> gy = gather(ay, pos_Mpc, Lbox_Mpc, dx, use_TSC, n_threads);
+    py::array_t<double> gz = gather(az, pos_Mpc, Lbox_Mpc, dx, use_TSC, n_threads);
 
     auto gxi = gx.unchecked<1>();
     auto gyi = gy.unchecked<1>();
@@ -2194,6 +2264,14 @@ py::tuple cic_deposit_vec_equal_mass(const py::array_t<double> pos_Mpc,
     return py::make_tuple(res[0], res[1], res[2]);
 }
 
+py::tuple tsc_deposit_vec_equal_mass(const py::array_t<double> pos_Mpc,
+                                     const py::array_t<double> vec,
+                                     double Lbox_Mpc,
+                                     int Ng) {
+    auto res = tsc_deposit_vec_equal_mass_impl(pos_Mpc, vec, Lbox_Mpc, Ng);
+    return py::make_tuple(res[0], res[1], res[2]);
+}
+
 py::tuple gradient_central(const py::array_t<double> grid, double dx) {
     auto grads = gradient_central_impl(grid, dx);
     return py::make_tuple(grads[0], grads[1], grads[2]);
@@ -2212,16 +2290,6 @@ py::tuple pressure_acceleration_grid(const py::array_t<double> rho_b_com_grid,
                                       double dx) {
     auto res = pressure_acceleration_grid_impl(rho_b_com_grid, P_phys, a, dx);
     return py::make_tuple(res[0], res[1], res[2]);
-}
-
-py::array_t<double> gather_vec(const py::array_t<double> ax,
-                               const py::array_t<double> ay,
-                               const py::array_t<double> az,
-                               const py::array_t<double> pos_Mpc,
-                               double Lbox_Mpc,
-                               double dx,
-                               int n_threads) {
-    return gather_vec_impl(ax, ay, az, pos_Mpc, Lbox_Mpc, dx, n_threads);
 }
 
 py::array_t<double> curl_mag_cgs(const py::array_t<double> vx,
@@ -2445,7 +2513,7 @@ py::tuple cooling_heating_step_cpp(
         Zsol_mean = sum_Z / Ng3;
     }
 
-    Vec3Grid vec_field = cic_deposit_vec_equal_mass_impl(pos_baryon, vel_baryon, Lbox_Mpc, Ng);
+    Vec3Grid vec_field = deposit_vec_equal_mass_impl(pos_baryon, vel_baryon, Lbox_Mpc, Ng, use_TSC);
     auto vx = std::move(vec_field[0]);
     auto vy = std::move(vec_field[1]);
     auto vz = std::move(vec_field[2]);
@@ -2505,7 +2573,7 @@ py::tuple cooling_heating_step_cpp(
         aPz_mut(i, j, k) *= acc_conv;
     }
 
-    py::array_t<double> aP_new = gather_vec_impl(aPx, aPy, aPz, pos_baryon, Lbox_Mpc, dx, n_threads);
+    py::array_t<double> aP_new = gather_vec(aPx, aPy, aPz, pos_baryon, Lbox_Mpc, dx, use_TSC, n_threads);
 
     double c_s_max_cms = 0.0;
     #pragma omp parallel for collapse(3) num_threads(n_threads) schedule(static) reduction(max:c_s_max_cms) //TESTING
@@ -3264,7 +3332,7 @@ PYBIND11_MODULE(grad_phi, m) {
           "Compute pressure acceleration components on the mesh.");
     m.def("gather_vec", &gather_vec,
           py::arg("ax"), py::arg("ay"), py::arg("az"),
-          py::arg("pos_Mpc"), py::arg("Lbox_Mpc"), py::arg("dx"), py::arg("n_threads") = 8,
+          py::arg("pos_Mpc"), py::arg("Lbox_Mpc"), py::arg("dx"), py::arg("use_TSC") = false, py::arg("n_threads") = 8,
           "Gather vector field from mesh to particle positions via CIC.");
     m.def("curl_mag_cgs", &curl_mag_cgs,
           py::arg("vx"), py::arg("vy"), py::arg("vz"), py::arg("dx_cm"),
