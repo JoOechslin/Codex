@@ -20,8 +20,7 @@ It implements **gravity**, **hydrodynamics**, and **radiative thermochemistry** 
 - **Thermochemistry**
   - Radiative cooling and heating using **Wiersma et al. (2009)** tables  
     (`Net_Cooling` for metal-free and metal-enriched gas)
-  - Temperature floor based on the **Jeans criterion**
-  - **Self-shielding correction** for dense regions
+  - Temperature floor based on the **CMB**
   - **Compton cooling** active pre-reionization (z > 9)
   - Smooth transition between pre- and post-reionization regimes
 
@@ -31,7 +30,7 @@ It implements **gravity**, **hydrodynamics**, and **radiative thermochemistry** 
   - Enables local enhancement of cooling efficiency in dense gas
 
 - **Numerical accuracy**
-  - Mass- and energy-conserving CIC (cloud-in-cell) deposition and gathering
+  - Mass- and energy-conserving CIC and TSC deposition and gathering
   - Fully verified **Layzer–Irvine energy conservation**
   - Adaptive timestep control based on cooling, dynamical, and CFL limits
   - Parallelized OpenMP kernels for high performance
@@ -71,19 +70,21 @@ It implements **gravity**, **hydrodynamics**, and **radiative thermochemistry** 
 
 ## 🚀 Running the Simulation
 
-1. **Copy all files on one directory**  
+1. **Copy all files to one directory**  
    Open the main Jupyter notebook called DFS-v11-0.ipynb. The grad_phi.cpython-312-darwin.so files as well as the 2 .npz files containing the cooling tables
    need to sit in the same directory such that the notebook finds these files.
    The .so file is compiled for a macOS environment. If you are running things on a different platform, you need to compile
-   the grad_phi-v2.cpp sorce file to get your .so file.
+   the grad_phi-v2.cpp source file to get your .so file. A compiler call for the mac environment is included as commentary
+   in the grad_phi-v2.cpp source file. You may need tol adjust the compiler call to your environment.
 
-2. **Run**  
+3. **Run**  
    Open and run the DFS-v11-0.ipynb notebook. You may need to install certain modules (eg CAMB) for the notebook to run.
 
-3. **Visualize**  
-   Use the provided Python notebooks in to inspect:
-   - Halo growth and temperature maps  
-   - Press–Schechter mass function  
+4. **Visualize**  
+   Use the analytics provided by the notebook to inspect:
+   - Animation of matter (CDM and baryons) from early universe to today
+   - Halo statistics and temperature maps  
+   - Comparison of halo statistics with Press–Schechter or Tinker mass function predictions 
    - Disk structure and baryonic spin evolution  
    - Layzer–Irvine energy conservation diagnostics
 
