@@ -3,6 +3,8 @@
 **CosmicStructureSim** is a fully self-consistent cosmological simulation framework that evolves **dark matter and baryons** from the early universe (z ≈ 100) to the present day.  
 It implements **gravity**, **hydrodynamics**, and **radiative thermochemistry** to study the formation and evolution of **cosmic structures** — including dark matter halos, gas collapse, and baryonic disk formation — in a ΛCDM cosmology.
 
+For an illustration of a simulation result, download **DFS-v11-0-summary.zip** and unzip the archive. Open the HTML file in a browser. If you do not see an animation, your browser is incapable of showing the HTML.
+
 ---
 
 ## ✨ Key Features
@@ -26,7 +28,7 @@ It implements **gravity**, **hydrodynamics**, and **radiative thermochemistry** 
 
 - **Metallicity modeling**
   - Physically motivated density–metallicity relation  
-    \( Z/Z_\odot = Z_{\text{floor}} + (Z_{\text{max}} - Z_{\text{floor}})\,(n_H/n_0)^\alpha / (1 + (n_H/n_0)^\alpha) \)
+    \$( Z/Z_\odot = Z_{\text{floor}} + (Z_{\text{max}} - Z_{\text{floor}})\,(n_H/n_0)^\alpha / (1 + (n_H/n_0)^\alpha) \$)
   - Enables local enhancement of cooling efficiency in dense gas
 
 - **Numerical accuracy**
@@ -75,7 +77,7 @@ It implements **gravity**, **hydrodynamics**, and **radiative thermochemistry** 
    need to sit in the same directory such that the notebook finds these files.
    The .so file is compiled for a macOS environment. If you are running things on a different platform, you need to compile
    the grad_phi-v2.cpp source file to get your .so file. A compiler call for the mac environment is included as commentary
-   in the grad_phi-v2.cpp source file. You may need tol adjust the compiler call to your environment.
+   in the grad_phi-v2.cpp source file. You may need to adjust the compiler call to your environment.
 
 3. **Run**  
    Open and run the DFS-v11-0.ipynb notebook. You may need to install certain modules (eg CAMB) for the notebook to run.
