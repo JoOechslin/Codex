@@ -1,5 +1,29 @@
 # Benchmark
 
+#1.10.2025 1400. use_TSC=True
+N_bodies: 16,777,216, grid cells: 16,777,216, particle mass:  2.042e+07 m_sun
+Initial scale factor a: 0.0100
+Total system mass: 3.426e+14 m_sun
+Initial angular momentum: [-176088. -523732.   -7566.] Mpc²⋅m_sun/Myr
+
+z=98.2, step=0, dt/dt_target=0.246, T min/max=243/2,646 K, S_max=0.997, max b/tot od=6.2/1.2, Zsol min/mean/max=0.000/0.000/0.000, temp by od=[274, 276, nan, nan, nan].................
+z=45.1, step=100, dt/dt_target=0.107, T min/max=113/12,979 K, S_max=0.995, max b/tot od=6.8/1.5, Zsol min/mean/max=0.000/0.000/0.000, temp by od=[777, 925, nan, nan, nan].................
+z=20.4, step=200, dt/dt_target=0.217, T min/max=55/18,703 K, S_max=0.996, max b/tot od=7.2/2.8, Zsol min/mean/max=0.000/0.000/0.000, temp by od=[1,521, 2,126, nan, nan, nan]................
+z=9.0, step=300, dt/dt_target=0.465, T min/max=26/41,089 K, S_max=0.997, max b/tot od=14.5/23.2, Zsol min/mean/max=0.002/0.010/0.037, temp by od=[2,228, 3,944, 12,459, nan, nan].................
+z=3.9, step=400, dt/dt_target=1.000, T min/max=13/298,205 K, S_max=0.996, max b/tot od=436.6/598.5, Zsol min/mean/max=0.013/0.019/0.246, temp by od=[3,462, 11,124, 53,430, 32,901, nan].................
+z=2.3, step=500, dt/dt_target=1.334, T min/max=9/525,217 K, S_max=0.991, max b/tot od=1412.1/1156.3, Zsol min/mean/max=0.023/0.026/0.430, temp by od=[5,973, 19,000, 69,773, 35,272, 12,640]................
+z=1.2, step=600, dt/dt_target=2.494, T min/max=6/973,786 K, S_max=0.989, max b/tot od=4816.1/3503.4, Zsol min/mean/max=0.032/0.034/0.621, temp by od=[7,848, 23,590, 77,590, 38,236, 13,250].................
+z=0.5, step=700, dt/dt_target=2.999, T min/max=4/1,410,380 K, S_max=0.989, max b/tot od=5894.7/4696.8, Zsol min/mean/max=0.042/0.042/0.736, temp by od=[8,585, 21,842, 66,975, 38,791, 14,263].................
+z=0.0, step=800, dt/dt_target=2.837, T min/max=3/1,070,986 K, S_max=0.987, max b/tot od=10307.4/8146.2, Zsol min/mean/max=0.049/0.049/0.790, temp by od=[7,025, 16,207, 41,624, 32,076, 14,893]..
+z=-0.0, step=811, dt/dt_target=2.955, T min/max=3/1,084,527 K, S_max=0.986, max b/tot od=16416.1/13921.4, Zsol min/mean/max=0.050/0.050/0.854, temp by od=[6,744, 15,485, 39,350, 31,369, 14,279]
+
+Final angular momentum: [ 5.82097975e+08 -5.37086679e+09 -2.89771311e+09] Mpc²⋅m_sun/Myr
+Final scale factor a: 1.0013
+Final scale factor for animation: 1.0013
+Highest v_pec: 0.002395 c
+Simulation took 3671.9 seconds.
+
+
 #30.9.2025 00:45
 N_bodies: 16,777,216, grid cells: 16,777,216, particle mass:  2.042e+07 m_sun
 Initial scale factor a: 0.0100
